@@ -15,27 +15,15 @@ const audioRoutes = require('./routes/audio.routes');
 const app = express();
 
 // CORS configuration - apply before static files
-// Allow both localhost:5173 and localhost:5174 for development
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
+// In development, allow all origins. In production, restrict to FRONTEND_URL
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.NODE_ENV === 'development' ? true : process.env.FRONTEND_URL,
   credentials: true,
   optionsSuccessStatus: 200
 };
+
+console.log('🔐 CORS configured for:', process.env.NODE_ENV === 'development' ? 'all origins (development)' : process.env.FRONTEND_URL);
+
 app.use(cors(corsOptions));
 
 // Serve static files from public directory (for audio and video files)
