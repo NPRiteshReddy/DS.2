@@ -25,7 +25,9 @@ export const AuthProvider = ({ children }) => {
         try {
           // Verify token is still valid by fetching current user
           const response = await api.auth.getCurrentUser();
-          setUser(response.data.user);
+          // Backend returns: {success, data: {user}}
+          const userData = response.data?.user || response.user;
+          setUser(userData);
           setIsAuthenticated(true);
         } catch (error) {
           // Token is invalid, clear it
@@ -50,8 +52,8 @@ export const AuthProvider = ({ children }) => {
       // Call real API
       const response = await api.auth.login(email, password);
 
-      // Extract data from response
-      const { token, user: userData } = response.data;
+      // Extract data from response (backend returns: {success, message, data: {user, token}})
+      const { token, user: userData } = response.data || response;
 
       // Store token and user data
       localStorage.setItem('auth_token', token);
@@ -75,8 +77,8 @@ export const AuthProvider = ({ children }) => {
       // Call real API
       const response = await api.auth.signup(name, email, password);
 
-      // Extract data from response
-      const { token, user: userData } = response.data;
+      // Extract data from response (backend returns: {success, message, data: {user, token}})
+      const { token, user: userData } = response.data || response;
 
       // Store token and user data
       localStorage.setItem('auth_token', token);
