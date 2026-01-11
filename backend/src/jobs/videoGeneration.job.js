@@ -23,6 +23,38 @@ const fs = require('fs').promises;
 // Configuration for video rendering
 const ENABLE_FULL_RENDERING = process.env.ENABLE_VIDEO_RENDERING === 'true';
 
+// Valid categories for videos (must match database constraint)
+const VALID_CATEGORIES = ['AI/ML', 'Data Science', 'Research'];
+
+/**
+ * Normalize category to a valid database value
+ * @param {string} category - Category from AI
+ * @returns {string} Valid category
+ */
+function normalizeCategory(category) {
+  if (!category) return 'AI/ML';
+
+  // Check if already valid
+  if (VALID_CATEGORIES.includes(category)) {
+    return category;
+  }
+
+  // Map common variations
+  const categoryLower = category.toLowerCase();
+  if (categoryLower.includes('ai') || categoryLower.includes('ml') || categoryLower.includes('machine learning')) {
+    return 'AI/ML';
+  }
+  if (categoryLower.includes('data')) {
+    return 'Data Science';
+  }
+  if (categoryLower.includes('research') || categoryLower.includes('science') || categoryLower.includes('programming')) {
+    return 'Research';
+  }
+
+  // Default fallback
+  return 'AI/ML';
+}
+
 /**
  * Process video generation job
  * @param {Object} job - Bull job object
@@ -86,7 +118,7 @@ async function processVideoGeneration(job) {
           source_url: sourceUrl,
           slides: script.slides,
           total_duration: script.totalDuration,
-          category: script.category || 'AI/ML',
+          category: normalizeCategory(script.category),
           status: 'pending',
           created_by: userId
         }
@@ -117,9 +149,10 @@ async function processVideoGeneration(job) {
     if (ENABLE_FULL_RENDERING) {
       // Full video rendering with Manim + TTS
       // Mode controlled by ENABLE_PERSLIDE_SYNC:
-      // - true: Render each slide, sync with audio individually (like ai_unveiled_synced.mp4)
-      // - false: Render all slides as one video, combine with audio (faster)
-      const usePerSlideSync = process.env.ENABLE_PERSLIDE_SYNC === 'true';
+      // - default (true): Render each slide, sync with audio individually (like ai_unveiled_synced.mp4)
+      // - false: Render all slides as one video, combine with audio (faster but less precise)
+      // Per-slide sync is enabled by default for better quality
+      const usePerSlideSync = process.env.ENABLE_PERSLIDE_SYNC !== 'false';
 
       // Step 3: Generate and render Manim animations
       await updateJobProgress(jobId, {
@@ -132,7 +165,21 @@ async function processVideoGeneration(job) {
       });
 
       console.log('Step 3: Generating Manim file...');
-      const manimFilePath = await generateManimFile(script.slides, jobId);
+      // Check if AI-enhanced Manim generation is enabled
+      // Disabled by default - AI generates unreliable layouts with overlapping elements
+      const useAIManiem = process.env.ENABLE_AI_MANIM === 'true'; // Default disabled
+      const visualTheme = script.visualTheme || 'general';
+
+      if (useAIManiem) {
+        console.log('  Using AI-enhanced Manim generation (GPT-4 custom code)...');
+      } else {
+        console.log('  Using template-based Manim generation...');
+      }
+
+      const manimFilePath = await generateManimFile(script.slides, jobId, {
+        useAI: useAIManiem,
+        theme: visualTheme
+      });
       console.log(`✓ Manim file created: ${manimFilePath}`);
 
       const renderOutputDir = path.join(VIDEO_OUTPUT_DIR, jobId);
@@ -296,7 +343,7 @@ async function processVideoGeneration(job) {
           duration: typeof finalDuration === 'number'
             ? formatDuration(finalDuration)
             : script.totalDuration,
-          category: script.category || 'AI/ML',
+          category: normalizeCategory(script.category),
           views: 0,
           source: 'AI Generated',
           source_url: sourceUrl,

@@ -13,12 +13,46 @@ if (process.env.REDIS_URL) {
       const Redis = require('ioredis');
       const url = process.env.REDIS_URL;
 
-      return new Redis(url, {
+      const client = new Redis(url, {
         maxRetriesPerRequest: null, // Important for Bull
         enableReadyCheck: false,
         tls: isUpstash ? { rejectUnauthorized: false } : undefined,
-        family: 4
+        family: 4,
+        // Reconnection settings
+        retryStrategy: (times) => {
+          const delay = Math.min(times * 1000, 30000);
+          console.log(`Redis reconnecting... attempt ${times}, delay ${delay}ms`);
+          return delay;
+        },
+        reconnectOnError: (err) => {
+          const targetError = 'READONLY';
+          if (err.message.includes(targetError)) {
+            return true;
+          }
+          return false;
+        },
+        connectTimeout: 30000,
+        keepAlive: 30000,
+        lazyConnect: false
       });
+
+      client.on('error', (err) => {
+        console.error(`Redis ${type} connection error:`, err.message);
+      });
+
+      client.on('connect', () => {
+        console.log(`Redis ${type} client connected`);
+      });
+
+      client.on('ready', () => {
+        console.log(`Redis ${type} client ready`);
+      });
+
+      client.on('reconnecting', () => {
+        console.log(`Redis ${type} client reconnecting...`);
+      });
+
+      return client;
     }
   };
 } else {
@@ -39,8 +73,16 @@ const videoGenerationQueue = new Queue('video-generation', {
       type: 'exponential',
       delay: 5000
     },
+    timeout: 900000, // 15 minutes - AI-enhanced Manim takes longer
     removeOnComplete: 100, // Keep last 100 completed jobs
     removeOnFail: 200 // Keep last 200 failed jobs
+  },
+  settings: {
+    lockDuration: 300000, // 5 minutes lock duration (default 30s is too short)
+    stalledInterval: 120000, // Check for stalled jobs every 2 minutes
+    maxStalledCount: 2, // Allow up to 2 stalls before failing
+    lockRenewTime: 150000, // Renew lock every 2.5 minutes
+    drainDelay: 5 // Delay between job processing
   }
 });
 
