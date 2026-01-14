@@ -104,8 +104,8 @@ const ReviewResultsPage = () => {
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await api.reviews.downloadPDF(reviewId);
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const blobData = await api.reviews.downloadPDF(reviewId);
+      const blob = new Blob([blobData], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
