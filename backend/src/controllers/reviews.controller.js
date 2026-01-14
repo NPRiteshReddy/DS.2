@@ -341,20 +341,24 @@ const downloadReviewPDF = asyncHandler(async (req, res) => {
     .fillColor(lightGray)
     .text('QUALITY SCORE', 65, scoreBoxY + 12);
 
-  doc
-    .fontSize(42)
-    .fillColor(scoreColors.color)
-    .text(`${score}`, 65, scoreBoxY + 30);
+  // Calculate score text width to position "/10" correctly
+  const scoreText = `${score}`;
+  doc.fontSize(42);
+  const scoreWidth = doc.widthOfString(scoreText);
 
   doc
-    .fontSize(20)
+    .fillColor(scoreColors.color)
+    .text(scoreText, 65, scoreBoxY + 32);
+
+  doc
+    .fontSize(18)
     .fillColor(lightGray)
-    .text('/10', 115, scoreBoxY + 45);
+    .text('/10', 65 + scoreWidth + 5, scoreBoxY + 48);
 
   doc
     .fontSize(16)
     .fillColor(scoreColors.color)
-    .text(scoreLabel, 170, scoreBoxY + 45);
+    .text(scoreLabel, 65 + scoreWidth + 55, scoreBoxY + 48);
 
   // Score bar visualization
   const barX = 300;
