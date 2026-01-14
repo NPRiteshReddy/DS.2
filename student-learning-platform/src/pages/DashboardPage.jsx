@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Search, Bookmark, ChevronDown, RefreshCw,
-  Filter, Calendar
+  Filter, Calendar, X, Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import VideoCard from '../components/video/VideoCard';
@@ -21,6 +21,47 @@ const DashboardPage = () => {
   const [hasMore, setHasMore] = useState(true);
   const { user, logout } = useAuth();
 
+  // Filter states
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [sortBy, setSortBy] = useState('newest');
+  const [dateRange, setDateRange] = useState('all');
+  const filterRef = useRef(null);
+  const dateRef = useRef(null);
+
+  // Sort options
+  const sortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'most_viewed', label: 'Most Viewed' },
+    { value: 'title_asc', label: 'Title (A-Z)' },
+    { value: 'title_desc', label: 'Title (Z-A)' }
+  ];
+
+  // Date range options
+  const dateOptions = [
+    { value: 'all', label: 'All Time' },
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'This Week' },
+    { value: 'month', label: 'This Month' },
+    { value: 'year', label: 'This Year' }
+  ];
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilterDropdown(false);
+      }
+      if (dateRef.current && !dateRef.current.contains(event.target)) {
+        setShowDateDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -30,7 +71,7 @@ const DashboardPage = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch videos from API based on category and search query
+  // Fetch videos from API based on category, search query, and filters
   useEffect(() => {
     const fetchVideos = async () => {
       setIsLoading(true);
@@ -47,12 +88,22 @@ const DashboardPage = () => {
           const params = {
             category: activeCategory,
             page: 1,
-            limit: 24
+            limit: 24,
+            sortBy,
+            dateRange
           };
           response = await api.videos.getAll(params);
         }
 
-        setFilteredVideos(response.data.videos);
+        let videos = response.data.videos || [];
+
+        // Client-side sorting (as backup if backend doesn't support it)
+        videos = sortVideos(videos, sortBy);
+
+        // Client-side date filtering (as backup if backend doesn't support it)
+        videos = filterByDate(videos, dateRange);
+
+        setFilteredVideos(videos);
         setHasMore(response.data.pagination?.totalPages > 1 || false);
         setPage(1);
       } catch (err) {
@@ -65,12 +116,66 @@ const DashboardPage = () => {
     };
 
     fetchVideos();
-  }, [activeCategory, debouncedQuery]);
+  }, [activeCategory, debouncedQuery, sortBy, dateRange]);
+
+  // Sort videos client-side
+  const sortVideos = (videos, sort) => {
+    const sorted = [...videos];
+    switch (sort) {
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      case 'most_viewed':
+        return sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
+      case 'title_asc':
+        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+      case 'title_desc':
+        return sorted.sort((a, b) => b.title.localeCompare(a.title));
+      default:
+        return sorted;
+    }
+  };
+
+  // Filter videos by date range client-side
+  const filterByDate = (videos, range) => {
+    if (range === 'all') return videos;
+
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    return videos.filter(video => {
+      const videoDate = new Date(video.created_at);
+      switch (range) {
+        case 'today':
+          return videoDate >= startOfDay;
+        case 'week':
+          const weekAgo = new Date(startOfDay);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return videoDate >= weekAgo;
+        case 'month':
+          const monthAgo = new Date(startOfDay);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          return videoDate >= monthAgo;
+        case 'year':
+          const yearAgo = new Date(startOfDay);
+          yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+          return videoDate >= yearAgo;
+        default:
+          return true;
+      }
+    });
+  };
 
   const clearFilters = () => {
     setSearchQuery('');
     setActiveCategory('All');
+    setSortBy('newest');
+    setDateRange('all');
   };
+
+  // Check if any filters are active
+  const hasActiveFilters = sortBy !== 'newest' || dateRange !== 'all';
 
   const loadMore = async () => {
     if (!hasMore || isLoading) return;
@@ -151,9 +256,6 @@ const DashboardPage = () => {
               <Link to="/create" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors">
                 Create Video
               </Link>
-              <Link to="/audio/create" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors">
-                Audio Overview
-              </Link>
               <Link to="/review" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors">
                 Review Project
               </Link>
@@ -161,9 +263,6 @@ const DashboardPage = () => {
 
             {/* User Menu */}
             <div className="flex items-center gap-3">
-              <button className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
-                <Search className="w-5 h-5" />
-              </button>
               <Link
                 to="/bookmarks"
                 className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors relative"
@@ -251,20 +350,107 @@ const DashboardPage = () => {
         {/* Filter Bar */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg
-                             text-sm font-medium text-gray-700
-                             hover:bg-gray-50 transition-colors
-                             flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg
-                             text-sm font-medium text-gray-700
-                             hover:bg-gray-50 transition-colors
-                             flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Date Range
-            </button>
+            {/* Sort/Filter Dropdown */}
+            <div className="relative" ref={filterRef}>
+              <button
+                onClick={() => {
+                  setShowFilterDropdown(!showFilterDropdown);
+                  setShowDateDropdown(false);
+                }}
+                className={`px-4 py-2 bg-white border rounded-lg
+                           text-sm font-medium transition-colors
+                           flex items-center gap-2
+                           ${sortBy !== 'newest'
+                             ? 'border-primary-500 text-primary-600 bg-primary-50'
+                             : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                           }`}
+              >
+                <Filter className="w-4 h-4" />
+                {sortOptions.find(o => o.value === sortBy)?.label || 'Sort By'}
+                <ChevronDown className={`w-4 h-4 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showFilterDropdown && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="py-1">
+                    {sortOptions.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setShowFilterDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between
+                                   ${sortBy === option.value
+                                     ? 'bg-primary-50 text-primary-600'
+                                     : 'text-gray-700 hover:bg-gray-50'
+                                   }`}
+                      >
+                        {option.label}
+                        {sortBy === option.value && <Check className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Date Range Dropdown */}
+            <div className="relative" ref={dateRef}>
+              <button
+                onClick={() => {
+                  setShowDateDropdown(!showDateDropdown);
+                  setShowFilterDropdown(false);
+                }}
+                className={`px-4 py-2 bg-white border rounded-lg
+                           text-sm font-medium transition-colors
+                           flex items-center gap-2
+                           ${dateRange !== 'all'
+                             ? 'border-primary-500 text-primary-600 bg-primary-50'
+                             : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                           }`}
+              >
+                <Calendar className="w-4 h-4" />
+                {dateOptions.find(o => o.value === dateRange)?.label || 'Date Range'}
+                <ChevronDown className={`w-4 h-4 transition-transform ${showDateDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showDateDropdown && (
+                <div className="absolute top-full left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="py-1">
+                    {dateOptions.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setDateRange(option.value);
+                          setShowDateDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between
+                                   ${dateRange === option.value
+                                     ? 'bg-primary-50 text-primary-600'
+                                     : 'text-gray-700 hover:bg-gray-50'
+                                   }`}
+                      >
+                        {option.label}
+                        {dateRange === option.value && <Check className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700
+                         flex items-center gap-1 transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Clear
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-sm text-gray-600">

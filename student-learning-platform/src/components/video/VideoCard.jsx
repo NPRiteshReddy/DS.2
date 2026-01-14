@@ -23,7 +23,19 @@ const VideoCard = ({ video, onClick, onBookmark }) => {
     >
       {/* Thumbnail */}
       <div className="aspect-video bg-gray-100 relative overflow-hidden">
-        <div className="w-full h-full bg-gradient-to-br from-primary-100 to-purple-100 flex items-center justify-center">
+        {video.thumbnail ? (
+          <img
+            src={video.thumbnail.startsWith('http') ? video.thumbnail : `${import.meta.env.VITE_API_URL?.replace('/api', '')}${video.thumbnail}`}
+            alt={video.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.style.display = 'none';
+              e.target.parentElement.querySelector('.fallback-thumbnail')?.classList.remove('hidden');
+            }}
+          />
+        ) : null}
+        <div className={`w-full h-full bg-gradient-to-br from-primary-100 to-purple-100 flex items-center justify-center fallback-thumbnail ${video.thumbnail ? 'hidden absolute inset-0' : ''}`}>
           <Video className="w-16 h-16 text-primary-600 opacity-50" />
         </div>
 
