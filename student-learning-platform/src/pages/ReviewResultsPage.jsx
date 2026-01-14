@@ -1,58 +1,93 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { GraduationCap, Download, ArrowLeft, CheckCircle, AlertTriangle, Star, TrendingUp, FileText } from 'lucide-react';
+import { GraduationCap, Download, ArrowLeft, CheckCircle, AlertTriangle, Star, TrendingUp, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const ReviewResultsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const reviewId = location.state?.reviewId;
   const repoUrl = location.state?.repoUrl || '';
 
-  // Mock review data
-  const reviewData = {
-    qualityScore: 7.8,
-    repoName: repoUrl.split('/').slice(-2).join('/') || 'your-repo',
-    reviewDate: new Date().toLocaleDateString(),
-    strengths: [
-      'Well-structured codebase with clear separation of concerns',
-      'Comprehensive documentation with examples',
-      'Good test coverage (78%)',
-      'Follows consistent coding style and conventions'
-    ],
-    improvements: [
-      'Consider adding input validation in user-facing functions',
-      'Some functions could be refactored to reduce complexity',
-      'Add more inline comments for complex algorithms',
-      'Update dependencies to latest stable versions'
-    ],
-    keySuggestions: [
-      'Implement error handling for edge cases in data processing modules',
-      'Add type hints for better code maintainability',
-      'Consider implementing a CI/CD pipeline for automated testing'
-    ],
-    fullReview: `This repository demonstrates solid software engineering practices with a well-organized structure and clear documentation. The code follows modern best practices and shows good understanding of design patterns.
+  const [status, setStatus] = useState('processing');
+  const [progress, setProgress] = useState(0);
+  const [reviewData, setReviewData] = useState(null);
+  const [error, setError] = useState('');
 
-Key Strengths:
-The project maintains excellent code organization with logical module separation. Documentation is thorough and includes helpful examples for users. The test coverage of 78% indicates a commitment to code quality, though there's room for improvement to reach the industry standard of 80%+.
+  // Poll for status while processing
+  useEffect(() => {
+    if (!reviewId) {
+      setError('No review ID provided. Please submit a repository for review.');
+      setStatus('error');
+      return;
+    }
 
-Areas for Enhancement:
-While the overall code quality is strong, some functions exhibit high cyclomatic complexity that could benefit from refactoring. Input validation should be strengthened, particularly in user-facing APIs. Adding more inline comments would improve maintainability for future contributors.
+    let pollInterval;
+    let isMounted = true;
 
-Security Considerations:
-The codebase follows secure coding practices, but consider implementing additional input sanitization and updating dependencies to patch known vulnerabilities.
+    const pollStatus = async () => {
+      try {
+        const response = await api.reviews.checkStatus(reviewId);
 
-Performance:
-The code is generally well-optimized, though some database queries could benefit from indexing. Consider implementing caching strategies for frequently accessed data.
+        if (!isMounted) return;
 
-Recommendations:
-1. Set up automated testing with CI/CD
-2. Increase test coverage to 85%+
-3. Refactor complex functions into smaller, testable units
-4. Add comprehensive error handling
-5. Document API endpoints with OpenAPI/Swagger
+        // Backend returns { success, data: { status, progress: { step, message } } }
+        const statusData = response.data;
+        const jobStatus = statusData.status;
 
-Overall, this is a well-maintained project that shows professional development practices. With the suggested improvements, it could serve as an excellent reference implementation.`
-  };
+        // Calculate progress percentage from step (1-3)
+        const progressStep = statusData.progress?.step || 1;
+        const jobProgress = Math.round((progressStep / 3) * 100);
+        setProgress(jobProgress);
+
+        if (jobStatus === 'completed') {
+          // Fetch full results
+          const resultsResponse = await api.reviews.getResults(reviewId);
+          if (isMounted) {
+            // Backend returns data directly (not nested under 'review')
+            // Convert camelCase to snake_case for frontend consistency
+            const data = resultsResponse.data;
+            setReviewData({
+              repo_name: data.repoName,
+              quality_score: data.qualityScore,
+              key_suggestions: data.keySuggestions || [],
+              strengths: data.strengths || [],
+              improvements: data.improvements || [],
+              full_review: data.fullReview,
+              completed_at: data.completedAt
+            });
+            setStatus('completed');
+          }
+          clearInterval(pollInterval);
+        } else if (jobStatus === 'failed') {
+          setError(statusData.progress?.message || 'Review failed. Please try again.');
+          setStatus('error');
+          clearInterval(pollInterval);
+        } else {
+          setStatus('processing');
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || 'Failed to check review status');
+          setStatus('error');
+        }
+        clearInterval(pollInterval);
+      }
+    };
+
+    // Initial check
+    pollStatus();
+
+    // Poll every 3 seconds
+    pollInterval = setInterval(pollStatus, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [reviewId]);
 
   const getScoreColor = (score) => {
     if (score >= 8) return 'text-success-600 bg-success-50 border-success-200';
@@ -67,10 +102,116 @@ Overall, this is a well-maintained project that shows professional development p
     return 'Needs Improvement';
   };
 
-  const handleDownloadPDF = () => {
-    alert('PDF download functionality would be implemented here. This would generate a professional PDF report with all review details.');
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await api.reviews.downloadPDF(reviewId);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `code-review-${reviewData?.repo_name?.replace('/', '-') || 'report'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert('PDF download is not yet available. This feature will be implemented soon.');
+    }
   };
 
+  const repoName = reviewData?.repo_name || repoUrl.split('/').slice(-2).join('/') || 'your-repo';
+
+  // Loading state
+  if (status === 'processing') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Navigation */}
+        <nav className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link to="/" className="flex items-center gap-2">
+                <GraduationCap className="w-8 h-8 text-primary-600" />
+                <span className="text-xl font-bold text-gray-900">LearnAI</span>
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* Loading Content */}
+        <div className="max-w-2xl mx-auto px-6 py-24 text-center">
+          <div className="bg-white rounded-2xl border border-gray-200 p-12">
+            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Analyzing Your Repository
+            </h1>
+            <p className="text-gray-600 mb-6">
+              We're reviewing your code with AI. This usually takes 2-5 minutes.
+            </p>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Progress</span>
+                <span className="font-medium text-gray-900">{progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-primary-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-6">
+              Repository: {repoName}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (status === 'error') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Navigation */}
+        <nav className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link to="/" className="flex items-center gap-2">
+                <GraduationCap className="w-8 h-8 text-primary-600" />
+                <span className="text-xl font-bold text-gray-900">LearnAI</span>
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* Error Content */}
+        <div className="max-w-2xl mx-auto px-6 py-24 text-center">
+          <div className="bg-white rounded-2xl border border-error-200 p-12">
+            <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="w-8 h-8 text-error-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Review Failed
+            </h1>
+            <p className="text-gray-600 mb-6">
+              {error}
+            </p>
+            <button
+              onClick={() => navigate('/review')}
+              className="px-6 py-3 bg-primary-600 text-white rounded-lg font-medium
+                       hover:bg-primary-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Results state
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
@@ -129,8 +270,12 @@ Overall, this is a well-maintained project that shows professional development p
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 Code Review Results
               </h1>
-              <p className="text-gray-600">{reviewData.repoName}</p>
-              <p className="text-sm text-gray-500 mt-1">Reviewed on {reviewData.reviewDate}</p>
+              <p className="text-gray-600">{repoName}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Reviewed on {reviewData?.completed_at
+                  ? new Date(reviewData.completed_at).toLocaleDateString()
+                  : new Date().toLocaleDateString()}
+              </p>
             </div>
             <button
               onClick={handleDownloadPDF}
@@ -144,90 +289,98 @@ Overall, this is a well-maintained project that shows professional development p
           </div>
 
           {/* Quality Score */}
-          <div className={`inline-flex items-center gap-3 px-6 py-4 rounded-xl border-2 ${getScoreColor(reviewData.qualityScore)}`}>
+          <div className={`inline-flex items-center gap-3 px-6 py-4 rounded-xl border-2 ${getScoreColor(reviewData?.quality_score || 0)}`}>
             <Star className="w-8 h-8" />
             <div>
-              <div className="text-3xl font-bold">{reviewData.qualityScore}/10</div>
-              <div className="text-sm font-medium">{getScoreLabel(reviewData.qualityScore)}</div>
+              <div className="text-3xl font-bold">{reviewData?.quality_score || 0}/10</div>
+              <div className="text-sm font-medium">{getScoreLabel(reviewData?.quality_score || 0)}</div>
             </div>
           </div>
         </div>
 
         {/* Key Suggestions */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-6 h-6 text-primary-600" />
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Key Suggestions
-            </h2>
+        {reviewData?.key_suggestions && reviewData.key_suggestions.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-6 h-6 text-primary-600" />
+              <h2 className="text-2xl font-semibold text-gray-900">
+                Key Suggestions
+              </h2>
+            </div>
+            <ul className="space-y-3">
+              {reviewData.key_suggestions.map((suggestion, idx) => (
+                <li key={idx} className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center mt-0.5">
+                    <span className="text-sm font-semibold text-primary-600">{idx + 1}</span>
+                  </div>
+                  <p className="text-gray-700">{suggestion}</p>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-3">
-            {reviewData.keySuggestions.map((suggestion, idx) => (
-              <li key={idx} className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center mt-0.5">
-                  <span className="text-sm font-semibold text-primary-600">{idx + 1}</span>
-                </div>
-                <p className="text-gray-700">{suggestion}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
+        )}
 
         {/* Strengths and Improvements */}
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           {/* Strengths */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <CheckCircle className="w-6 h-6 text-success-600" />
-              <h3 className="text-xl font-semibold text-gray-900">
-                Strengths
-              </h3>
+          {reviewData?.strengths && reviewData.strengths.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 p-8">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle className="w-6 h-6 text-success-600" />
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Strengths
+                </h3>
+              </div>
+              <ul className="space-y-3">
+                {reviewData.strengths.map((strength, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <CheckCircle className="w-5 h-5 text-success-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">{strength}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-3">
-              {reviewData.strengths.map((strength, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-success-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-gray-700">{strength}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
+          )}
 
           {/* Areas for Improvement */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertTriangle className="w-6 h-6 text-warning-600" />
-              <h3 className="text-xl font-semibold text-gray-900">
-                Areas for Improvement
-              </h3>
+          {reviewData?.improvements && reviewData.improvements.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 p-8">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="w-6 h-6 text-warning-600" />
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Areas for Improvement
+                </h3>
+              </div>
+              <ul className="space-y-3">
+                {reviewData.improvements.map((improvement, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-warning-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700">{improvement}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-3">
-              {reviewData.improvements.map((improvement, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <AlertTriangle className="w-5 h-5 text-warning-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-gray-700">{improvement}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
+          )}
         </div>
 
         {/* Full Review */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-8">
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-6 h-6 text-primary-600" />
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Detailed Review
-            </h2>
+        {reviewData?.full_review && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-8">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="w-6 h-6 text-primary-600" />
+              <h2 className="text-2xl font-semibold text-gray-900">
+                Detailed Review
+              </h2>
+            </div>
+            <div className="prose prose-gray max-w-none">
+              {reviewData.full_review.split('\n\n').map((paragraph, idx) => (
+                <p key={idx} className="text-gray-700 leading-relaxed mb-4">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
           </div>
-          <div className="prose prose-gray max-w-none">
-            {reviewData.fullReview.split('\n\n').map((paragraph, idx) => (
-              <p key={idx} className="text-gray-700 leading-relaxed mb-4">
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="mt-8 flex gap-4 justify-center">
