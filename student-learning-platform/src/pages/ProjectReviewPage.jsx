@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { GraduationCap, Code, Github, AlertCircle, Clock, Star, FileText, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { validateGitHubURL } from '../utils/validators';
+import api from '../services/api';
 
 const ProjectReviewPage = () => {
   const [repoUrl, setRepoUrl] = useState('');
@@ -24,11 +25,24 @@ const ProjectReviewPage = () => {
 
     setIsValid(true);
     setIsReviewing(true);
+    setError('');
 
-    // Simulate review process and navigate to results
-    setTimeout(() => {
-      navigate('/review/results', { state: { repoUrl } });
-    }, 3000);
+    try {
+      // Submit review to backend
+      const response = await api.reviews.submit(repoUrl);
+
+      // Navigate to results page with review ID
+      navigate('/review/results', {
+        state: {
+          reviewId: response.data.reviewId,
+          repoUrl
+        }
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to start code review. Please try again.');
+      setIsValid(false);
+      setIsReviewing(false);
+    }
   };
 
   const exampleRepos = [
