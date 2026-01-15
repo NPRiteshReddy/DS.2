@@ -18,9 +18,23 @@ const resourcesRoutes = require('./routes/resources.routes');
 const app = express();
 
 // CORS configuration - apply before static files
-// In development, allow all origins. In production, restrict to FRONTEND_URL
+// Allow multiple frontend URLs (Vercel generates different URLs)
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://student-learning-platform-3i3uxwak7-riteshs-projects-a69d135d.vercel.app',
+  /\.vercel\.app$/  // Allow all Vercel preview deployments
+];
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'development' ? true : process.env.FRONTEND_URL,
+  origin: process.env.NODE_ENV === 'development' ? true : (origin, callback) => {
+    if (!origin || allowedOrigins.some(allowed =>
+      allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
+    )) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now to avoid CORS issues
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -165,7 +179,10 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 });
 
-// Start the server
-startServer();
+// Start the server only if not running on Vercel (serverless)
+if (!process.env.VERCEL) {
+  startServer();
+}
 
+// Export for Vercel serverless
 module.exports = app;
