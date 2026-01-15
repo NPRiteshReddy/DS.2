@@ -12,6 +12,14 @@ const videoRoutes = require('./routes/videos.routes');
 const generateRoutes = require('./routes/generate.routes');
 const audioRoutes = require('./routes/audio.routes');
 const reviewRoutes = require('./routes/reviews.routes');
+const newsRoutes = require('./routes/news.routes');
+const assignmentsRoutes = require('./routes/assignments.routes');
+const notificationsRoutes = require('./routes/notifications.routes');
+const studyRoutes = require('./routes/study.routes');
+const flashcardsRoutes = require('./routes/flashcards.routes');
+const progressRoutes = require('./routes/progress.routes');
+const assistantRoutes = require('./routes/assistant.routes');
+const resourcesRoutes = require('./routes/resources.routes');
 
 const app = express();
 
@@ -75,6 +83,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/generate', generateRoutes);
 app.use('/api/audio', audioRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/assignments', assignmentsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/study', studyRoutes);
+app.use('/api/flashcards', flashcardsRoutes);
+app.use('/api/progress', progressRoutes);
+app.use('/api/assistant', assistantRoutes);
+app.use('/api/resources', resourcesRoutes);
 
 // Review routes for code analysis
 app.use('/api/reviews', reviewRoutes);
@@ -135,6 +151,13 @@ const startServer = async () => {
       console.log('');
       console.log('   Health:');
       console.log('   GET    /health                   - Health check');
+      console.log('');
+      console.log('   News Feed:');
+      console.log('   GET    /api/news/categories      - Get interest categories');
+      console.log('   GET    /api/news/interests       - Get user interests (auth)');
+      console.log('   PUT    /api/news/interests       - Update user interests (auth)');
+      console.log('   GET    /api/news                 - Get personalized news (auth)');
+      console.log('   GET    /api/news/saved           - Get saved articles (auth)');
       console.log('');
     });
   } catch (error) {
