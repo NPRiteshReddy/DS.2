@@ -30,7 +30,29 @@
       "Bash(ls:*)",
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git stash drop:*)",
+      "WebFetch(domain:gitingest.com)",
+      "Bash(del \"D:\\\\AI Projects\\\\DS.2\\\\student-learning-platform\\\\src\\\\pages\\\\CreateAudioPage.jsx\" \"D:\\\\AI Projects\\\\DS.2\\\\student-learning-platform\\\\src\\\\pages\\\\AudioGenerationLoadingPage.jsx\" \"D:\\\\AI Projects\\\\DS.2\\\\student-learning-platform\\\\src\\\\pages\\\\AudioPlayerPage.jsx\")",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 38488 -Force\")",
+      "Bash(npm run worker:dev:*)",
+      "Bash(gh pr list:*)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)",
+      "Bash(git merge:*)",
+      "Bash(more:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel --yes)",
+      "Bash(railway --version:*)",
+      "Bash(railway login:*)",
+      "Bash(vercel env add:*)",
+      "Bash(vercel:*)"
     ]
   }
 }
