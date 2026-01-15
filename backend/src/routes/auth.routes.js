@@ -1,6 +1,6 @@
 const express = require('express');
 const { body } = require('express-validator');
-const { signup, login, getCurrentUser, logout } = require('../controllers/auth.controller');
+const { signup, login, getCurrentUser, logout, googleCallback } = require('../controllers/auth.controller');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -70,5 +70,12 @@ router.get('/me', authenticate, getCurrentUser);
  * @access  Public
  */
 router.post('/logout', logout);
+
+/**
+ * @route   POST /api/auth/google-callback
+ * @desc    Handle Google OAuth callback and exchange for JWT
+ * @access  Public
+ */
+router.post('/google-callback', googleCallback);
 
 module.exports = router;

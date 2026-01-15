@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
+import { supabase } from '../config/supabase';
 
 const AuthContext = createContext();
 
@@ -95,10 +96,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    if (!supabase) {
+      throw new Error('Google login is not configured. Please set up Supabase credentials.');
+    }
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  };
+
   const logout = async () => {
     try {
       // Call logout endpoint (optional, mainly for consistency)
       await api.auth.logout();
+      // Also sign out from Supabase if connected
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
     } catch (error) {
       console.error('Logout error:', error.message);
     } finally {
@@ -112,10 +136,12 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    setUser,
     isAuthenticated,
     loading,
     login,
     signup,
+    loginWithGoogle,
     logout
   };
 

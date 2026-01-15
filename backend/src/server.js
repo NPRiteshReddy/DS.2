@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth.routes');
 const videoRoutes = require('./routes/videos.routes');
 const generateRoutes = require('./routes/generate.routes');
 const audioRoutes = require('./routes/audio.routes');
+const reviewRoutes = require('./routes/reviews.routes');
 
 const app = express();
 
@@ -75,8 +76,8 @@ app.use('/api/videos', videoRoutes);
 app.use('/api/generate', generateRoutes);
 app.use('/api/audio', audioRoutes);
 
-// Review routes (to be added later)
-// app.use('/api/reviews', reviewRoutes);
+// Review routes for code analysis
+app.use('/api/reviews', reviewRoutes);
 
 // 404 handler for undefined routes
 app.use((req, res) => {

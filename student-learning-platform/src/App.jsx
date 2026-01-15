@@ -12,11 +12,7 @@ import VideoGenerationLoadingPage from './pages/VideoGenerationLoadingPage';
 import ProjectReviewPage from './pages/ProjectReviewPage';
 import ReviewResultsPage from './pages/ReviewResultsPage';
 import VideoPlayerPage from './pages/VideoPlayerPage';
-
-// Audio Pages (NotebookLM-style)
-import CreateAudioPage from './pages/CreateAudioPage';
-import AudioGenerationLoadingPage from './pages/AudioGenerationLoadingPage';
-import AudioPlayerPage from './pages/AudioPlayerPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 
 function App() {
   return (
@@ -27,6 +23,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
 
           {/* Bookmarks Route */}
@@ -59,32 +56,6 @@ function App() {
 
           {/* Video Player Route */}
           <Route path="/video/:id" element={<VideoPlayerPage />} />
-
-          {/* Audio Overview Routes (NotebookLM-style) */}
-          <Route
-            path="/audio/create"
-            element={
-              <ProtectedRoute>
-                <CreateAudioPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/audio/generating"
-            element={
-              <ProtectedRoute>
-                <AudioGenerationLoadingPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/audio/player"
-            element={
-              <ProtectedRoute>
-                <AudioPlayerPage />
-              </ProtectedRoute>
-            }
-          />
 
           {/* Project Review Routes */}
           <Route

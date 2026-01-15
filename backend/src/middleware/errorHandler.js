@@ -1,3 +1,21 @@
+const { validationResult } = require('express-validator');
+
+/**
+ * Validation middleware - checks for validation errors
+ * Usage: Add after express-validator checks in route
+ */
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      errors: errors.array()
+    });
+  }
+  next();
+};
+
 /**
  * Global error handler middleware
  * Catches all errors and returns a consistent JSON response
@@ -80,4 +98,4 @@ class AppError extends Error {
   }
 }
 
-module.exports = { errorHandler, asyncHandler, AppError };
+module.exports = { errorHandler, asyncHandler, AppError, validate };

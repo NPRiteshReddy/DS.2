@@ -109,6 +109,18 @@ const api = {
     getCurrentUser: async () => {
       const response = await apiClient.get('/auth/me');
       return response.data;
+    },
+
+    /**
+     * Handle Google OAuth callback
+     * @param {Object} data - Google auth data
+     * @param {string} data.accessToken - Supabase access token
+     * @param {Object} data.user - Google user data
+     * @returns {Promise} Response with user data and JWT token
+     */
+    googleCallback: async (data) => {
+      const response = await apiClient.post('/auth/google-callback', data);
+      return response.data;
     }
   },
 
@@ -252,90 +264,7 @@ const api = {
   },
 
   // ============================================================================
-  // AUDIO OVERVIEW (NotebookLM-style podcasts)
-  // ============================================================================
-  audio: {
-    /**
-     * Generate audio overview from URL
-     * @param {string} url - Source URL (article, paper, etc.)
-     * @param {Object} options - Generation options
-     * @returns {Promise} Response with job ID
-     */
-    generate: async (url, options = {}) => {
-      const response = await apiClient.post('/audio/generate', { url, options });
-      return response.data;
-    },
-
-    /**
-     * Check audio generation job status
-     * @param {string} jobId - Job ID
-     * @returns {Promise} Response with job status and progress
-     */
-    getJobStatus: async (jobId) => {
-      const response = await apiClient.get(`/audio/job/${jobId}/status`);
-      return response.data;
-    },
-
-    /**
-     * Cancel audio generation
-     * @param {string} jobId - Job ID
-     * @returns {Promise} Response
-     */
-    cancelJob: async (jobId) => {
-      const response = await apiClient.delete(`/audio/job/${jobId}`);
-      return response.data;
-    },
-
-    /**
-     * Get user's audio generation jobs
-     * @returns {Promise} Response with user's jobs
-     */
-    getMyJobs: async () => {
-      const response = await apiClient.get('/audio/my-jobs');
-      return response.data;
-    },
-
-    /**
-     * Get user's generated audio overviews
-     * @returns {Promise} Response with audio list
-     */
-    getMyAudio: async () => {
-      const response = await apiClient.get('/audio/my-audio');
-      return response.data;
-    },
-
-    /**
-     * Get single audio overview by ID
-     * @param {string} audioId - Audio ID
-     * @returns {Promise} Response with audio data
-     */
-    getById: async (audioId) => {
-      const response = await apiClient.get(`/audio/${audioId}`);
-      return response.data;
-    },
-
-    /**
-     * Delete audio overview
-     * @param {string} audioId - Audio ID
-     * @returns {Promise} Response
-     */
-    delete: async (audioId) => {
-      const response = await apiClient.delete(`/audio/${audioId}`);
-      return response.data;
-    },
-
-    /**
-     * Check if audio generation is available (dependencies installed)
-     * @returns {Promise} Response with availability status
-     */
-    checkAvailability: async () => {
-      const response = await apiClient.get('/audio/check-availability');
-      return response.data;
-    }
-  },
-
-  // ============================================================================
-  // CODE REVIEWS (Placeholder for future implementation)
+  // CODE REVIEWS
   // ============================================================================
   reviews: {
     /**

@@ -403,27 +403,58 @@ function generateMathGraphScene(className, title, visualData, waitTime) {
         `;
     });
 
+    // Calculate tick values for axes
+    const xStep = Math.ceil((xRange[1] - xRange[0]) / 5);
+    const yStep = Math.ceil((yRange[1] - yRange[0]) / 5);
+
+    // Generate x-axis tick labels
+    let xTicks = [];
+    for (let x = xRange[0]; x <= xRange[1]; x += xStep) {
+        xTicks.push(x);
+    }
+
+    // Generate y-axis tick labels
+    let yTicks = [];
+    for (let y = yRange[0]; y <= yRange[1]; y += yStep) {
+        yTicks.push(y);
+    }
+
     return `
 class ${className}(Scene):
     def construct(self):
         title = Text("${title}", font_size=44, color=BLUE_C).to_edge(UP, buff=0.5)
         self.play(Write(title), run_time=1.5)
 
-        # Create simple axes (no numbers - avoids LaTeX dependency)
+        # Create axes with proper configuration
         axes = Axes(
-            x_range=[${xRange[0]}, ${xRange[1]}, 1],
-            y_range=[${yRange[0]}, ${yRange[1]}, ${Math.ceil((yRange[1] - yRange[0]) / 5)}],
+            x_range=[${xRange[0]}, ${xRange[1]}, ${xStep}],
+            y_range=[${yRange[0]}, ${yRange[1]}, ${yStep}],
             x_length=10,
             y_length=5,
-            tips=False
+            tips=False,
+            axis_config={"include_ticks": True, "tick_size": 0.1}
         ).set_color(GRAY).shift(DOWN * 0.3)
 
         # Axis labels
         x_label = Text("${xLabel}", font_size=18).next_to(axes.x_axis, RIGHT, buff=0.2)
         y_label = Text("${yLabel}", font_size=18).next_to(axes.y_axis, UP, buff=0.2)
 
+        # Add tick value labels using Text (avoids LaTeX dependency)
+        x_tick_labels = VGroup()
+        for val in [${xTicks.join(', ')}]:
+            tick_label = Text(str(int(val)), font_size=14, color=GRAY)
+            tick_label.next_to(axes.c2p(val, 0), DOWN, buff=0.15)
+            x_tick_labels.add(tick_label)
+
+        y_tick_labels = VGroup()
+        for val in [${yTicks.join(', ')}]:
+            if val != 0:  # Skip 0 to avoid overlap
+                tick_label = Text(str(int(val)), font_size=14, color=GRAY)
+                tick_label.next_to(axes.c2p(0, val), LEFT, buff=0.15)
+                y_tick_labels.add(tick_label)
+
         self.play(Create(axes), run_time=1.5)
-        self.play(FadeIn(x_label), FadeIn(y_label), run_time=0.5)
+        self.play(FadeIn(x_label), FadeIn(y_label), FadeIn(x_tick_labels), FadeIn(y_tick_labels), run_time=0.5)
 
 ${funcCode}
 

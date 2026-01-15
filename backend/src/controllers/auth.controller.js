@@ -229,9 +229,119 @@ const logout = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @route   POST /api/auth/google-callback
+ * @desc    Handle Google OAuth callback and exchange for JWT
+ * @access  Public
+ */
+const googleCallback = asyncHandler(async (req, res, next) => {
+  const { accessToken, user: googleUser } = req.body;
+
+  if (!accessToken || !googleUser || !googleUser.email) {
+    throw new AppError('Invalid Google authentication data', 400);
+  }
+
+  const { id: googleId, email, name, avatar_url } = googleUser;
+
+  // Check if user exists by google_id or email
+  let { data: existingUser } = await supabase
+    .from('users')
+    .select('id, name, email, avatar, google_id, created_at')
+    .or(`google_id.eq.${googleId},email.eq.${email}`)
+    .single();
+
+  let user;
+
+  if (existingUser) {
+    // Update google_id if not set (user previously signed up with email)
+    if (!existingUser.google_id) {
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({ google_id: googleId })
+        .eq('id', existingUser.id)
+        .select('id, name, email, avatar, created_at')
+        .single();
+
+      if (updateError) {
+        console.error('Error updating google_id:', updateError);
+      }
+      user = updatedUser || existingUser;
+    } else {
+      user = existingUser;
+    }
+  } else {
+    // Create new user
+    const avatar = name
+      ? name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+      : email.substring(0, 2).toUpperCase();
+
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert([{
+        name: name || email.split('@')[0],
+        email,
+        google_id: googleId,
+        avatar,
+        password: null // No password for Google users
+      }])
+      .select('id, name, email, avatar, created_at')
+      .single();
+
+    if (createError) {
+      console.error('Error creating Google user:', createError);
+      throw new AppError('Failed to create user account', 500);
+    }
+
+    user = newUser;
+
+    // Create user_stats entry for new user
+    await supabase
+      .from('user_stats')
+      .insert([{
+        user_id: user.id,
+        videos_generated: 0,
+        reviews_completed: 0,
+        videos_watched: 0,
+        bookmarks_count: 0
+      }]);
+  }
+
+  // Get user stats
+  const { data: stats } = await supabase
+    .from('user_stats')
+    .select('videos_generated, reviews_completed, videos_watched, bookmarks_count')
+    .eq('user_id', user.id)
+    .single();
+
+  // Generate JWT token
+  const token = generateToken(user);
+
+  res.status(200).json({
+    success: true,
+    message: 'Google authentication successful',
+    data: {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        joined: user.created_at,
+        stats: stats || {
+          videosGenerated: 0,
+          reviewsCompleted: 0,
+          videosWatched: 0,
+          bookmarks: 0
+        }
+      },
+      token
+    }
+  });
+});
+
 module.exports = {
   signup,
   login,
   getCurrentUser,
-  logout
+  logout,
+  googleCallback
 };

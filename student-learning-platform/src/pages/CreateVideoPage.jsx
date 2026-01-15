@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GraduationCap, Sparkles, AlertCircle, Clock, Video, Bookmark, Info, Link as LinkIcon } from 'lucide-react';
+import { GraduationCap, Sparkles, AlertCircle, Clock, Video, Bookmark, Info, Link as LinkIcon, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { validateURL } from '../utils/validators';
 import api from '../services/api';
@@ -10,6 +10,7 @@ const CreateVideoPage = () => {
   const [isValid, setIsValid] = useState(true);
   const [error, setError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -59,7 +60,7 @@ const CreateVideoPage = () => {
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <GraduationCap className="w-8 h-8 text-primary-600" />
-              <span className="text-xl font-bold text-gray-900">LearnAI</span>
+              <span className="text-xl font-bold text-gray-900">Learn.AI</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
@@ -75,7 +76,7 @@ const CreateVideoPage = () => {
             </div>
 
             {user && (
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
                   <span className="text-sm font-semibold text-primary-600">{user.avatar}</span>
                 </div>
@@ -87,7 +88,59 @@ const CreateVideoPage = () => {
                 </button>
               </div>
             )}
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
+
+          {/* Mobile Navigation Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-200 py-4">
+              <div className="flex flex-col space-y-3">
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/create"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-base font-medium text-primary-600 bg-primary-50 rounded-lg"
+                >
+                  Create Video
+                </Link>
+                <Link
+                  to="/review"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+                >
+                  Review Project
+                </Link>
+                {user && (
+                  <div className="pt-3 mt-3 border-t border-gray-200 flex items-center justify-between px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-semibold text-primary-600">{user.avatar}</span>
+                      </div>
+                      <span className="text-sm text-gray-700">{user.name || user.email}</span>
+                    </div>
+                    <button
+                      onClick={() => { logout(); setMobileMenuOpen(false); }}
+                      className="text-sm text-gray-600 hover:text-gray-900"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 

@@ -100,6 +100,21 @@ const audioGenerationQueue = new Queue('audio-generation', {
   }
 });
 
+// Code review queue for GitHub repository analysis
+const codeReviewQueue = new Queue('code-review', {
+  ...queueOptions,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 10000
+    },
+    timeout: 300000, // 5 minutes for repo ingestion + analysis
+    removeOnComplete: 100,
+    removeOnFail: 200
+  }
+});
+
 // Event listeners for video queue
 videoGenerationQueue.on('error', (error) => {
   console.error('❌ Video Queue error:', error.message);
@@ -142,7 +157,29 @@ audioGenerationQueue.on('failed', (job, err) => {
   console.error(`❌ Audio Job ${job.id} failed:`, err.message);
 });
 
+// Event listeners for code review queue
+codeReviewQueue.on('error', (error) => {
+  console.error('❌ Code Review Queue error:', error.message);
+});
+
+codeReviewQueue.on('waiting', (jobId) => {
+  console.log(`📝 Code Review Job ${jobId} is waiting`);
+});
+
+codeReviewQueue.on('active', (job) => {
+  console.log(`🔍 Code Review Job ${job.id} is now active`);
+});
+
+codeReviewQueue.on('completed', (job, result) => {
+  console.log(`✅ Code Review Job ${job.id} completed`);
+});
+
+codeReviewQueue.on('failed', (job, err) => {
+  console.error(`❌ Code Review Job ${job.id} failed:`, err.message);
+});
+
 module.exports = {
   videoGenerationQueue,
-  audioGenerationQueue
+  audioGenerationQueue,
+  codeReviewQueue
 };

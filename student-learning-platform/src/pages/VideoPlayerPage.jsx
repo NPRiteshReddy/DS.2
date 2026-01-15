@@ -30,6 +30,7 @@ const VideoPlayerPage = () => {
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [showTranscript, setShowTranscript] = useState(false);
     const [transcript, setTranscript] = useState([]);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     // Fetch video data
     useEffect(() => {
@@ -151,12 +152,40 @@ const VideoPlayerPage = () => {
         }
     };
 
-    const handleDownload = () => {
-        if (video?.video_url) {
+    const handleDownload = async () => {
+        if (!video?.video_url || isDownloading) return;
+
+        setIsDownloading(true);
+        try {
+            // Build the full URL
+            const url = video.video_url.startsWith('http')
+                ? video.video_url
+                : `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${video.video_url}`;
+
+            // Fetch the video as a blob
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch video');
+
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            // Create download link and trigger download
             const link = document.createElement('a');
-            link.href = video.video_url;
-            link.download = `${video.title}.mp4`;
+            link.href = blobUrl;
+            // Sanitize filename - remove invalid characters
+            const safeTitle = video.title.replace(/[<>:"/\\|?*]/g, '').substring(0, 100);
+            link.download = `${safeTitle}.mp4`;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
+
+            // Cleanup blob URL after a short delay
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+        } catch (err) {
+            console.error('Download error:', err);
+            alert('Failed to download video. Please try again.');
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -222,7 +251,7 @@ const VideoPlayerPage = () => {
                             </Link>
                             <Link to="/" className="flex items-center gap-2">
                                 <GraduationCap className="w-7 h-7 text-primary-500" />
-                                <span className="text-lg font-bold text-white">LearnAI</span>
+                                <span className="text-lg font-bold text-white">Learn.AI</span>
                             </Link>
                         </div>
 
@@ -394,11 +423,23 @@ const VideoPlayerPage = () => {
                                     </button>
                                     <button
                                         onClick={handleDownload}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg 
-                             font-medium hover:bg-gray-600 transition-colors"
+                                        disabled={isDownloading}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
+                                            ${isDownloading
+                                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                                : 'bg-gray-700 text-white hover:bg-gray-600'}`}
                                     >
-                                        <Download className="w-5 h-5" />
-                                        Download
+                                        {isDownloading ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                                Downloading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="w-5 h-5" />
+                                                Download
+                                            </>
+                                        )}
                                     </button>
                                     <button
                                         onClick={() => setShowTranscript(!showTranscript)}
