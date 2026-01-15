@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Search, Bookmark, ChevronDown, RefreshCw,
-  Filter, Calendar, X, Check, Menu, BookOpen, Layers,
-  BarChart2, MessageSquare, Library
+  Filter, Calendar, X, Check, Menu, MessageSquare, Library
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import VideoCard from '../components/video/VideoCard';
@@ -261,18 +260,6 @@ const DashboardPage = () => {
               <Link to="/review" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors">
                 Review Project
               </Link>
-              <Link to="/study" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors flex items-center gap-1">
-                <BookOpen className="w-4 h-4" />
-                Study
-              </Link>
-              <Link to="/flashcards" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors flex items-center gap-1">
-                <Layers className="w-4 h-4" />
-                Flashcards
-              </Link>
-              <Link to="/progress" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors flex items-center gap-1">
-                <BarChart2 className="w-4 h-4" />
-                Progress
-              </Link>
               <Link to="/assistant" className="text-base font-medium text-gray-700 hover:text-primary-600 transition-colors flex items-center gap-1">
                 <MessageSquare className="w-4 h-4" />
                 Assistant
@@ -340,30 +327,6 @@ const DashboardPage = () => {
                   className="px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
                 >
                   Review Project
-                </Link>
-                <Link
-                  to="/study"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-2"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Study Planner
-                </Link>
-                <Link
-                  to="/flashcards"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-2"
-                >
-                  <Layers className="w-4 h-4" />
-                  Flashcards
-                </Link>
-                <Link
-                  to="/progress"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-2"
-                >
-                  <BarChart2 className="w-4 h-4" />
-                  Progress Dashboard
                 </Link>
                 <Link
                   to="/assistant"

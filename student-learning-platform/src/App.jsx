@@ -14,18 +14,7 @@ import ReviewResultsPage from './pages/ReviewResultsPage';
 import VideoPlayerPage from './pages/VideoPlayerPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 
-// News Feed Pages
-import InterestsPage from './pages/InterestsPage';
-import NewsFeedPage from './pages/NewsFeedPage';
-
-// Assignments & Reminders
-import AssignmentsPage from './pages/AssignmentsPage';
-import NotificationSettingsPage from './pages/NotificationSettingsPage';
-
-// New Features
-import StudyPlannerPage from './pages/StudyPlannerPage';
-import FlashcardsPage from './pages/FlashcardsPage';
-import ProgressDashboardPage from './pages/ProgressDashboardPage';
+// AI Features
 import AIAssistantPage from './pages/AIAssistantPage';
 import ResourceLibraryPage from './pages/ResourceLibraryPage';
 
@@ -90,69 +79,7 @@ function App() {
             }
           />
 
-          {/* News Feed Routes */}
-          <Route
-            path="/interests"
-            element={
-              <ProtectedRoute>
-                <InterestsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/news"
-            element={
-              <ProtectedRoute>
-                <NewsFeedPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Assignments Route */}
-          <Route
-            path="/assignments"
-            element={
-              <ProtectedRoute>
-                <AssignmentsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Notification Settings */}
-          <Route
-            path="/settings/notifications"
-            element={
-              <ProtectedRoute>
-                <NotificationSettingsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* New Features */}
-          <Route
-            path="/study"
-            element={
-              <ProtectedRoute>
-                <StudyPlannerPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/flashcards"
-            element={
-              <ProtectedRoute>
-                <FlashcardsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/progress"
-            element={
-              <ProtectedRoute>
-                <ProgressDashboardPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* AI Assistant */}
           <Route
             path="/assistant"
             element={
@@ -161,6 +88,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Resource Library */}
           <Route
             path="/resources"
             element={
