@@ -14,6 +14,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('auth_token'));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true); // Start with true while checking session
 
@@ -54,12 +55,13 @@ export const AuthProvider = ({ children }) => {
       const response = await api.auth.login(email, password);
 
       // Extract data from response (backend returns: {success, message, data: {user, token}})
-      const { token, user: userData } = response.data || response;
+      const { token: authToken, user: userData } = response.data || response;
 
       // Store token and user data
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_token', authToken);
       localStorage.setItem('user', JSON.stringify(userData));
 
+      setToken(authToken);
       setUser(userData);
       setIsAuthenticated(true);
       setLoading(false);
@@ -79,12 +81,13 @@ export const AuthProvider = ({ children }) => {
       const response = await api.auth.signup(name, email, password);
 
       // Extract data from response (backend returns: {success, message, data: {user, token}})
-      const { token, user: userData } = response.data || response;
+      const { token: authToken, user: userData } = response.data || response;
 
       // Store token and user data
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_token', authToken);
       localStorage.setItem('user', JSON.stringify(userData));
 
+      setToken(authToken);
       setUser(userData);
       setIsAuthenticated(true);
       setLoading(false);
@@ -129,6 +132,7 @@ export const AuthProvider = ({ children }) => {
       // Always clear local state
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
+      setToken(null);
       setUser(null);
       setIsAuthenticated(false);
     }
@@ -137,6 +141,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     setUser,
+    token,
     isAuthenticated,
     loading,
     login,
