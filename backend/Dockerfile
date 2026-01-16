@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir manim edge-tts
+    pip install --no-cache-dir manim edge-tts gitingest
 
 # Set working directory
 WORKDIR /app
