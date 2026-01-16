@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 
 # Environment variables
@@ -120,3 +119,5 @@ dump.rdb
 # PDF generated files
 uploads/
 generated/
+
+.vercel
